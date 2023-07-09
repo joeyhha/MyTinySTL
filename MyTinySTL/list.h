@@ -414,6 +414,7 @@ public:
 
   iterator insert(const_iterator pos, const value_type& value)
   {
+    // 内存塞不下为止
     THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "list<T>'s size too big");
     auto link_node = create_node(value);
     ++size_;

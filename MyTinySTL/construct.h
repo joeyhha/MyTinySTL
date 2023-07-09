@@ -40,9 +40,11 @@ void construct(Ty* ptr, Args&&... args)
 
 // destroy 将对象析构
 
+// true_type不进行操作
 template <class Ty>
 void destroy_one(Ty*, std::true_type) {}
 
+// false_type进行析构
 template <class Ty>
 void destroy_one(Ty* pointer, std::false_type)
 {
@@ -52,6 +54,7 @@ void destroy_one(Ty* pointer, std::false_type)
   }
 }
 
+// 
 template <class ForwardIter>
 void destroy_cat(ForwardIter , ForwardIter , std::true_type) {}
 
@@ -59,12 +62,14 @@ template <class ForwardIter>
 void destroy_cat(ForwardIter first, ForwardIter last, std::false_type)
 {
   for (; first != last; ++first)
+    // &*first：first指向元素的引用
     destroy(&*first);
 }
 
 template <class Ty>
 void destroy(Ty* pointer)
 {
+  // std::is_trivially_destructible<Ty>用来判断Ty是否可以被隐式析构
   destroy_one(pointer, std::is_trivially_destructible<Ty>{});
 }
 

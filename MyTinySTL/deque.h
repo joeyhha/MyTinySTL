@@ -40,6 +40,7 @@ namespace mystl
 #define DEQUE_MAP_INIT_SIZE 8
 #endif
 
+// 计算一个buf的大小,T大小小于256字节，buf大小为4096 / sizeof(T)，否则为16
 template <class T>
 struct deque_buf_size
 {
@@ -71,16 +72,21 @@ struct deque_iterator : public iterator<random_access_iterator_tag, T>
   map_pointer   node;   // 缓冲区所在节点
 
   // 构造、复制、移动函数
+  // 默认构造，将所有成员指针初始化为空
   deque_iterator() noexcept
     :cur(nullptr), first(nullptr), last(nullptr), node(nullptr) {}
 
+  // 有参构造，last指向n的后一个节点
   deque_iterator(value_pointer v, map_pointer n)
     :cur(v), first(*n), last(*n + buffer_size), node(n) {}
 
+  // 拷贝构造
   deque_iterator(const iterator& rhs)
     :cur(rhs.cur), first(rhs.first), last(rhs.last), node(rhs.node)
   {
   }
+
+  // 移动构造，用rhs创造一个新的迭代器对象，将rhs所有成员指针移动到新对象中，rhs所有成员指针置为空
   deque_iterator(iterator&& rhs) noexcept
     :cur(rhs.cur), first(rhs.first), last(rhs.last), node(rhs.node)
   {
@@ -90,11 +96,13 @@ struct deque_iterator : public iterator<random_access_iterator_tag, T>
     rhs.node = nullptr;
   }
 
+  // 对常对象进行拷贝构造
   deque_iterator(const const_iterator& rhs)
     :cur(rhs.cur), first(rhs.first), last(rhs.last), node(rhs.node)
   {
   }
 
+  // = 运算符重载，将当前对象的成员指针设置成右值相同的值
   self& operator=(const iterator& rhs)
   {
     if (this != &rhs)
@@ -119,12 +127,14 @@ struct deque_iterator : public iterator<random_access_iterator_tag, T>
   reference operator*()  const { return *cur; }
   pointer   operator->() const { return cur; }
 
+  // - 运算符重载，返回两个节点之间的距离
   difference_type operator-(const self& x) const
   {
     return static_cast<difference_type>(buffer_size) * (node - x.node)
       + (cur - first) - (x.cur - x.first);
   }
 
+  // 前++和后++ 运算符重载
   self& operator++()
   {
     ++cur;
@@ -176,6 +186,8 @@ struct deque_iterator : public iterator<random_access_iterator_tag, T>
     }
     return *this;
   }
+
+  // 将迭代器向前加n个位置，但是不需要返回引用
   self operator+(difference_type n) const
   {
     self tmp = *this;
@@ -191,6 +203,7 @@ struct deque_iterator : public iterator<random_access_iterator_tag, T>
     return tmp -= n;
   }
 
+  // *(*this + n) 中 * 和 + 都是重载过的，别看乱了
   reference operator[](difference_type n) const { return *(*this + n); }
 
   // 重载比较操作符
@@ -384,12 +397,12 @@ public:
   // 修改容器相关操作
 
   // assign
-
+  // 用n个value替换原来的元素
   void     assign(size_type n, const value_type& value)
   { fill_assign(n, value); }
 
-  template <class IIter, typename std::enable_if<
-    mystl::is_input_iterator<IIter>::value, int>::type = 0>
+  // 将从first到last的元素拷贝到新的位置
+  template <class IIter, typename std::enable_if<mystl::is_input_iterator<IIter>::value, int>::type = 0>
   void     assign(IIter first, IIter last)
   { copy_assign(first, last, iterator_category(first)); }
 
@@ -462,6 +475,7 @@ private:
   void        copy_assign(FIter first, FIter last, forward_iterator_tag);
 
   // insert
+  // 辅助插入，看在前半段还是后半段
   template <class... Args>
   iterator    insert_aux(iterator position, Args&& ...args);
   void        fill_insert(iterator position, size_type n, const value_type& x);
@@ -472,7 +486,7 @@ private:
   template <class FIter>
   void        insert_dispatch(iterator, FIter, FIter, forward_iterator_tag);
 
-  // reallocate
+  // reallocate 重新分配空间
   void        require_capacity(size_type n, bool front);
   void        reallocate_map_at_front(size_type need);
   void        reallocate_map_at_back(size_type need);
@@ -853,7 +867,9 @@ typename deque<T>::map_pointer
 deque<T>::create_map(size_type size)
 {
   map_pointer mp = nullptr;
+  // 分配一块大小为size的空间，用mp指向它（mp即为数组的头）
   mp = map_allocator::allocate(size);
+  // 数组中每个元素指向空
   for (size_type i = 0; i < size; ++i)
     *(mp + i) = nullptr;
   return mp;
@@ -867,6 +883,7 @@ create_buffer(map_pointer nstart, map_pointer nfinish)
   map_pointer cur;
   try
   {
+    // 为每一个node分配一块buffer
     for (cur = nstart; cur <= nfinish; ++cur)
     {
       *cur = data_allocator::allocate(buffer_size);
@@ -874,6 +891,7 @@ create_buffer(map_pointer nstart, map_pointer nfinish)
   }
   catch (...)
   {
+    // 出现任何异常，就将cur回退到nstart，沿途回收已经分配的内存
     while (cur != nstart)
     {
       --cur;
@@ -901,10 +919,12 @@ template <class T>
 void deque<T>::
 map_init(size_type nElem)
 {
-  const size_type nNode = nElem / buffer_size + 1;  // 需要分配的缓冲区个数
-  map_size_ = mystl::max(static_cast<size_type>(DEQUE_MAP_INIT_SIZE), nNode + 2);
+  const size_type nNode = nElem / buffer_size + 1;  // 需要分配的缓冲区个数 buffer_size：16
+  map_size_ = mystl::max(static_cast<size_type>(DEQUE_MAP_INIT_SIZE), nNode + 2); // DEQUE_MAP_INIT_SIZE 8
+  // 所以nElem若小于 5 * 32 那么map_size_就默认初始化成8
   try
   {
+    // map_为指向map的指针
     map_ = create_map(map_size_);
   }
   catch (...)
@@ -919,22 +939,25 @@ map_init(size_type nElem)
   map_pointer nfinish = nstart + nNode - 1;
   try
   {
+    // 为从nstart到nfinish的指针分配buffer
     create_buffer(nstart, nfinish);
   }
   catch (...)
   {
+    // 出现任何异常，回收已经分配的空间
     map_allocator::deallocate(map_, map_size_);
     map_ = nullptr;
     map_size_ = 0;
     throw;
   }
-  begin_.set_node(nstart);
-  end_.set_node(nfinish);
-  begin_.cur = begin_.first;
-  end_.cur = end_.first + (nElem % buffer_size);
+  begin_.set_node(nstart);  // bengin_指向nstart
+  end_.set_node(nfinish);   // end_指向nfinish
+  begin_.cur = begin_.first;  // 指向begin的缓冲区头部
+  end_.cur = end_.first + (nElem % buffer_size); // 指向end的缓冲区的元素尾部
 }
 
-// fill_init 函数
+// fill_init 函数，初始化map，然后将每个缓冲区中元素的值都设置为value
+// size_type：long unsigned int
 template <class T>
 void deque<T>::
 fill_init(size_type n, const value_type& value)
@@ -950,7 +973,7 @@ fill_init(size_type n, const value_type& value)
   }
 }
 
-// copy_init 函数
+// copy_init 函数，拷贝初始化
 template <class T>
 template <class IIter>
 void deque<T>::
@@ -962,6 +985,7 @@ copy_init(IIter first, IIter last, input_iterator_tag)
     emplace_back(*first);
 }
 
+// 前向拷贝初始化
 template <class T>
 template <class FIter>
 void deque<T>::
@@ -1301,6 +1325,7 @@ insert_dispatch(iterator position, FIter first, FIter last, forward_iterator_tag
 template <class T>
 void deque<T>::require_capacity(size_type n, bool front)
 {
+  // 
   if (front && (static_cast<size_type>(begin_.cur - begin_.first) < n))
   {
     const size_type need_buffer = (n - (begin_.cur - begin_.first)) / buffer_size + 1;
@@ -1327,13 +1352,14 @@ void deque<T>::require_capacity(size_type n, bool front)
 template <class T>
 void deque<T>::reallocate_map_at_front(size_type need_buffer)
 {
+  // 原来大小的两倍和需要的大小，取大的那个
   const size_type new_map_size = mystl::max(map_size_ << 1,
                                             map_size_ + need_buffer + DEQUE_MAP_INIT_SIZE);
   map_pointer new_map = create_map(new_map_size);
   const size_type old_buffer = end_.node - begin_.node + 1;
   const size_type new_buffer = old_buffer + need_buffer;
 
-  // 另新的 map 中的指针指向原来的 buffer，并开辟新的 buffer
+  // 令新的 map 中的指针指向原来的 buffer，并开辟新的 buffer
   auto begin = new_map + (new_map_size - new_buffer) / 2;
   auto mid = begin + need_buffer;
   auto end = mid + old_buffer;

@@ -41,6 +41,7 @@ public:
   static void destroy(T* first, T* last);
 };
 
+// 分配一块大小为sizeof(T)的内存空间，用allocate()分配空间都是以元素大小T为单位
 template <class T>
 T* allocator<T>::allocate()
 {
@@ -63,6 +64,7 @@ void allocator<T>::deallocate(T* ptr)
   ::operator delete(ptr);
 }
 
+// 只能删除由::operator new分配的内存
 template <class T>
 void allocator<T>::deallocate(T* ptr, size_type /*size*/)
 {
@@ -71,6 +73,7 @@ void allocator<T>::deallocate(T* ptr, size_type /*size*/)
   ::operator delete(ptr);
 }
 
+// 构造对象
 template <class T>
 void allocator<T>::construct(T* ptr)
 {

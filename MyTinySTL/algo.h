@@ -2387,6 +2387,7 @@ void intro_sort(RandomIter first, RandomIter last, Size depth_limit)
     }
     --depth_limit;
     auto mid = mystl::median(*(first), *(first + (last - first) / 2), *(last - 1));
+    // 将小于mid的元素放在mid的左侧，大于mid的元素放在mid的右侧
     auto cut = mystl::unchecked_partition(first, last, mid);
     mystl::intro_sort(cut, last, depth_limit);
     last = cut;

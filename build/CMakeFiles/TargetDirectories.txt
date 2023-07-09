@@ -1,0 +1,5 @@
+/data/lab/2021/wh/Linux/tinySTL/MyTinySTL/build/CMakeFiles/rebuild_cache.dir
+/data/lab/2021/wh/Linux/tinySTL/MyTinySTL/build/CMakeFiles/edit_cache.dir
+/data/lab/2021/wh/Linux/tinySTL/MyTinySTL/build/Test/CMakeFiles/edit_cache.dir
+/data/lab/2021/wh/Linux/tinySTL/MyTinySTL/build/Test/CMakeFiles/rebuild_cache.dir
+/data/lab/2021/wh/Linux/tinySTL/MyTinySTL/build/Test/CMakeFiles/stltest.dir

@@ -1326,17 +1326,21 @@ typename hashtable<T, Hash, KeyEqual>::node_ptr
 hashtable<T, Hash, KeyEqual>::
 create_node(Args&& ...args)
 {
+  // 分配内存来存储节点
   node_ptr tmp = node_allocator::allocate(1);
   try
   {
+    // 在分配的内存中构造节点的值，使用完美转发来传递参数
     data_allocator::construct(mystl::address_of(tmp->value), mystl::forward<Args>(args)...);
-    tmp->next = nullptr;
+    tmp->next = nullptr;  // 设置节点的下一个指针为空指针
   }
   catch (...)
   {
+    // 如果构造过程中抛出异常，释放已分配的内存并继续抛出异常
     node_allocator::deallocate(tmp);
     throw;
   }
+  // 返回构造的节点指针
   return tmp;
 }
 

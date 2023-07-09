@@ -70,7 +70,7 @@ private:
 
 public:
   // 构造、复制、移动、析构函数
-  vector() noexcept
+  vector() noexcept // 分配16个元素大小的空间
   { try_init(); }
 
   explicit vector(size_type n)
@@ -556,6 +556,7 @@ void vector<T>::try_init() noexcept
 {
   try
   {
+    // 初始分配16个元素大小的内存
     begin_ = data_allocator::allocate(16);
     end_ = begin_;
     cap_ = begin_ + 16;

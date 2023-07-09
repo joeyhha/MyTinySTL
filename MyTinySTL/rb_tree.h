@@ -1067,21 +1067,27 @@ typename rb_tree<T, Compare>::iterator
 rb_tree<T, Compare>::
 emplace_multi_use_hint(iterator hint, Args&& ...args)
 {
+  // 检查容器的大小是否超过最大限制
   THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "rb_tree<T, Comp>'s size too big");
+  // 创建新节点并获取指向该节点的指针
   node_ptr np = create_node(mystl::forward<Args>(args)...);
   if (node_count_ == 0)
   {
+    // 如果树为空，将节点插入为根节点
     return insert_node_at(header_, np, true);
   }
+  // 获取新节点的键值
   key_type key = value_traits::get_key(np->value);
   if (hint == begin())
   { // 位于 begin 处
     if (key_comp_(key, value_traits::get_key(*hint)))
     {
+      // 如果新节点的键值小于 hint 处节点的键值，插入到 hint 处
       return insert_node_at(hint.node, np, true);
     }
     else
     {
+      // 获取在新节点插入位置的信息，并插入新节点
       auto pos = get_insert_multi_pos(key);
       return insert_node_at(pos.first, np, pos.second);
     }
@@ -1090,14 +1096,17 @@ emplace_multi_use_hint(iterator hint, Args&& ...args)
   { // 位于 end 处
     if (!key_comp_(key, value_traits::get_key(rightmost()->get_node_ptr()->value)))
     {
+      // 如果新节点的键值不小于最右节点的键值，插入为最右节点的右子节点
       return insert_node_at(rightmost(), np, false);
     }
     else
     {
+      // 获取在新节点插入位置的信息，并插入新节点
       auto pos = get_insert_multi_pos(key);
       return insert_node_at(pos.first, np, pos.second);
     }
   }
+  // 使用 hint 插入新节点
   return insert_multi_use_hint(hint, key, np);
 }
 
